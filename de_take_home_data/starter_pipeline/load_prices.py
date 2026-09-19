@@ -13,12 +13,15 @@ It works... mostly. Part of your task is to understand what it does,
 fix what it gets wrong, and extend it. Do NOT assume it is correct.
 """
 import csv
+import logging
 import sqlite3
 
 DB = "prices.db"
 SOURCE_FILE = "../raw_feeds/binance_BTCUSD.csv"
 VENUE = "binance"
 ASSET = "BTCUSD"
+
+logger = logging.getLogger(__name__)
 
 
 def load():
@@ -42,9 +45,13 @@ def load():
 
     conn.commit()
     n = cur.execute("SELECT COUNT(*) FROM prices").fetchone()[0]
-    print(f"Loaded. prices table now has {n} rows.")
+    logger.info("Loaded. prices table now has %d rows.", n)
     conn.close()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    )
     load()
