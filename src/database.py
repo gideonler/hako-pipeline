@@ -1,11 +1,25 @@
 """SQLite connection and schema helpers."""
 
 import sqlite3
+from contextlib import closing, contextmanager
 from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .models import Candle, ReferencePrice
+
+Database = Path | sqlite3.Connection
+
+
+@contextmanager
+def database_session(database: Database):
+    """Reuse a caller-owned transaction, or manage a local connection."""
+    if isinstance(database, sqlite3.Connection):
+        yield database
+    else:
+        with closing(sqlite3.connect(database)) as connection:
+            with connection:
+                yield connection
 
 
 UPSERT_CANDLE_SQL = """
@@ -69,15 +83,17 @@ WHERE daily_reference_price.reference_close_usd
 
 
 def initialize_database(db_path: Path, schema_path: Path) -> None:
-    """Create the database and apply its schema idempotently."""
+    """
+    Create the database and apply its schema idempotently
+    """
     db_path.parent.mkdir(parents=True, exist_ok=True)
     schema_sql = schema_path.read_text(encoding="utf-8")
 
-    with sqlite3.connect(db_path) as connection:
+    with database_session(db_path) as connection:
         connection.executescript(schema_sql)
 
 
-def upsert_candles(db_path: Path, candles: Sequence[Candle]) -> int:
+def upsert_candles(database: Database, candles: Sequence[Candle]) -> int:
     """Insert or update validated candles in one transaction."""
     if not candles:
         return 0
@@ -101,15 +117,16 @@ def upsert_candles(db_path: Path, candles: Sequence[Candle]) -> int:
         for candle in candles
     ]
 
-    with sqlite3.connect(db_path) as connection:
+    with database_session(database) as connection:
+        before = connection.total_changes
         connection.executemany(UPSERT_CANDLE_SQL, values)
-        rows_changed = connection.total_changes
+        rows_changed = connection.total_changes - before
 
     return rows_changed
 
 
 def upsert_reference_prices(
-    db_path: Path,
+    database: Database,
     references: Sequence[ReferencePrice],
 ) -> int:
     """Insert or update validated reference prices in one transaction."""
@@ -129,8 +146,9 @@ def upsert_reference_prices(
         for reference in references
     ]
 
-    with sqlite3.connect(db_path) as connection:
+    with database_session(database) as connection:
+        before = connection.total_changes
         connection.executemany(UPSERT_REFERENCE_SQL, values)
-        rows_changed = connection.total_changes
+        rows_changed = connection.total_changes - before
 
     return rows_changed

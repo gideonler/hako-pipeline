@@ -1,0 +1,90 @@
+<mxfile host="app.diagrams.net" agent="Codex" pages="2">
+  <diagram id="coinhako-pipeline" name="Market Data Pipeline">
+    <mxGraphModel dx="951" dy="1840" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1F2937;" value="Coinhako Daily Market-Data Pipeline" vertex="1">
+          <mxGeometry height="40" width="620" x="440" y="-50" as="geometry" />
+        </mxCell>
+        <mxCell id="bronze" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#FFF4E6;swimlaneFillColor=#FFF9F1;strokeColor=#B7791F;fontColor=#7C4A03;fontStyle=1;fontSize=15;" value="BRONZE — Raw files" vertex="1">
+          <mxGeometry height="650" width="290" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="raw-venues" parent="bronze" style="rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=14;fillColor=#FFFFFF;strokeColor=#D69E2E;fontSize=13;" value="raw_feeds/&lt;br&gt;&lt;b&gt;6 venue OHLCV CSVs&lt;/b&gt;&lt;br&gt;Binance · Kraken · Coinbase&lt;br&gt;BTCUSD · ETHUSD" vertex="1">
+          <mxGeometry height="115" width="240" x="25" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="reference-files" parent="bronze" style="rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=14;fillColor=#FFFFFF;strokeColor=#D69E2E;fontSize=13;" value="raw_feeds/&lt;br&gt;&lt;b&gt;2 reference-price CSVs&lt;/b&gt;&lt;br&gt;BTCUSD · ETHUSD" vertex="1">
+          <mxGeometry height="90" width="240" x="25" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="gemini-files" parent="bronze" style="rounded=1;whiteSpace=wrap;html=1;align=left;spacingLeft=14;fillColor=#FFFFFF;strokeColor=#D69E2E;fontSize=13;" value="new_source/&lt;br&gt;&lt;b&gt;Gemini OHLCV CSV&lt;/b&gt;&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="110" width="240" x="25" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="silver" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#F2F4F7;swimlaneFillColor=#FAFAFA;strokeColor=#718096;fontColor=#374151;fontStyle=1;fontSize=15;" value="SILVER — Normalise and Validated" vertex="1">
+          <mxGeometry height="910" width="550" x="480" y="70" as="geometry" />
+        </mxCell>
+        <mxCell id="entrypoints" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;Pipeline entry points&lt;/b&gt;&lt;br&gt;main.py&lt;br&gt;load_prices.py" vertex="1">
+          <mxGeometry height="110" width="220" x="160" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="adapters" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;Maps Source into Candle Struct&lt;/b&gt;&lt;br&gt;src/adapters.py" vertex="1">
+          <mxGeometry height="125" width="220" x="160" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="gCKc3Ce6OYs1_4n-omeS-1" edge="1" parent="silver" source="models" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="quality" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="models" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;Defines data shape&lt;/b&gt;&lt;br&gt;src/models.py" vertex="1">
+          <mxGeometry height="125" width="220" x="160" y="390" as="geometry" />
+        </mxCell>
+        <mxCell id="quality" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;Shared quality checks&lt;/b&gt;&lt;br&gt;src/validation.py + src/loader.py&lt;br&gt;&lt;br&gt;Required columns and valid OHLC&lt;br&gt;Duplicate/conflicting keys&lt;br&gt;Reference-price check where configured" vertex="1">
+          <mxGeometry height="135" width="495" x="22.5" y="570" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-entry-adapters" edge="1" parent="silver" source="entrypoints" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="adapters">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-adapters-models" edge="1" parent="silver" source="adapters" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="models">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gold" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#FFF8D9;swimlaneFillColor=#FFFDF2;strokeColor=#B7950B;fontColor=#6B5900;fontStyle=1;fontSize=15;" value="GOLD — Business ready Data" vertex="1">
+          <mxGeometry height="650" width="300" x="1110" y="100.5" as="geometry" />
+        </mxCell>
+        <mxCell id="ohlcv-table" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;daily_ohlcv&lt;/b&gt;&lt;br&gt;&lt;div&gt;One validated daily candle per&lt;/div&gt;&lt;div&gt;venue, symbol, and date&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;Includes source file and row number&lt;/div&gt;" vertex="1">
+          <mxGeometry height="115" width="250" x="25" y="75" as="geometry" />
+        </mxCell>
+        <mxCell id="reference-table" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B7950B;fontSize=13;" value="&lt;div&gt;&lt;b&gt;daily_reference_price&lt;/b&gt;&lt;/div&gt;&lt;div&gt;&lt;b&gt;&lt;br&gt;&lt;/b&gt;&lt;/div&gt;&lt;div&gt;One benchmark closing price per&lt;/div&gt;&lt;div&gt;symbol and date.&amp;nbsp;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Used to detect unusual venue prices&lt;/span&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="115" width="250" x="25" y="225" as="geometry" />
+        </mxCell>
+        <mxCell id="audit-tables" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;Quality audit tables&lt;/b&gt;&lt;br&gt;rejected_rows&lt;br&gt;missing_dates" vertex="1">
+          <mxGeometry height="115" width="250" x="25" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite-file" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4BF;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;output/prices.db&lt;/b&gt;&lt;br&gt;Tables defined in src/ddl/schema.sql&lt;br&gt;Local, queryable deliverable" vertex="1">
+          <mxGeometry height="85" width="250" x="25" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="analysts" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9F7EF;strokeColor=#2E8B57;fontSize=13;" value="&lt;b&gt;Downstream Users&lt;/b&gt;" vertex="1">
+          <mxGeometry height="105" width="160" x="1480" y="373" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-bronze-entry" edge="1" parent="1" source="bronze" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="entrypoints">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-transaction-gold" edge="1" parent="1" source="transaction" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="gold">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-gold-analysts" edge="1" parent="1" source="gold" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2E8B57;strokeWidth=2;endArrow=block;endFill=1;" target="analysts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="transaction" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4FD;strokeColor=#3182CE;fontSize=13;" value="&lt;b&gt;Safe database write&lt;/b&gt;&lt;div&gt;&lt;div&gt;src/loader.py&lt;/div&gt;&lt;div&gt;Accept valid rows and reject bad rows&lt;/div&gt;&lt;div&gt;&lt;br&gt;&lt;/div&gt;&lt;div&gt;src/database.py&lt;/div&gt;&lt;div&gt;Upsert trusted records&lt;/div&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="100" width="320" x="590" y="830" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-quality-transaction" edge="1" parent="1" source="quality" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#3182CE;strokeWidth=2;endArrow=block;endFill=1;" target="transaction">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="paemcHvx_ECeufRNok2k" name="Page-2">
+    <mxGraphModel dx="963" dy="567" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

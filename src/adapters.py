@@ -1,8 +1,45 @@
 """Source-specific parsers that produce canonical pipeline records."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from .models import Candle, ReferencePrice
+
+SINGAPORE_TIMEZONE = ZoneInfo("Asia/Singapore")
+
+
+def parse_gemini_row(
+    row: dict[str, str],
+    source_file: str,
+    source_row_number: int,
+    expected_symbol: str,
+) -> Candle:
+    """Normalize a Gemini epoch-millisecond row into a canonical candle."""
+    symbol = row["symbol"].replace("-", "").upper()
+
+    if symbol != expected_symbol:
+        raise ValueError(
+            f"expected symbol {expected_symbol}, received {row['symbol']}"
+        )
+
+    timestamp = datetime.fromtimestamp(
+        int(row["time_ms"]) / 1000,
+        tz=timezone.utc,
+    )
+
+    return Candle(
+        venue="gemini",
+        symbol=symbol,
+        trading_date=timestamp.astimezone(SINGAPORE_TIMEZONE).date(),
+        open=float(row["o"]),
+        high=float(row["h"]),
+        low=float(row["l"]),
+        close=float(row["c"]),
+        volume=float(row["base_vol"]),
+        volume_unit="base",
+        source_file=source_file,
+        source_row_number=source_row_number,
+    )
 
 
 def parse_binance_row(

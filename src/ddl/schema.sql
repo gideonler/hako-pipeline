@@ -1,3 +1,18 @@
+CREATE TABLE IF NOT EXISTS rejected_rows (
+    source_file TEXT NOT NULL,
+    source_row_number INTEGER NOT NULL,
+    reasons TEXT NOT NULL,
+    raw_record TEXT NOT NULL,
+    PRIMARY KEY (source_file, source_row_number)
+);
+
+CREATE TABLE IF NOT EXISTS missing_dates (
+    source_file TEXT NOT NULL,
+    symbol TEXT NOT NULL,
+    trading_date TEXT NOT NULL,
+    PRIMARY KEY (source_file, symbol, trading_date)
+);
+
 CREATE TABLE IF NOT EXISTS daily_ohlcv (
     venue TEXT NOT NULL,
     symbol TEXT NOT NULL,
