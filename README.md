@@ -68,7 +68,7 @@ acceptance criteria for the Part 2 implementation.
 
 ## Check rerun safety
 
-Run Part 1 twice against a separate test database:
+Run against a test DB:
 
 ```bash
 python3 -m src.main --db /tmp/part1-prices.db
@@ -155,91 +155,24 @@ To override the input folder:
 python3 -m src.main --raw-dir data/raw_feeds
 ```
 
-## Part 2 — Inherited loader review
+## Inherited loader 
+The inherited loader is located at:
 
-**Status:** the inherited `load_prices.py` has been restored to its original
-state. The review below describes what it currently does and the changes still
-required. Do not describe these changes as completed until the inherited entry
-point has been updated and tested.
+`de_take_home_data/starter_pipeline/load_prices.py`
 
-### What the inherited script does
+It was fixed to use the shared schema, adapters, validation, transactions, and
+idempotent upserts. It was also extended to load Gemini BTCUSD and ETHUSD through
+the shared source configuration.
 
-The script opens a working-directory-relative `prices.db`, creates an
-unconstrained `prices` table, reads only Binance BTCUSD, inserts every CSV row,
-commits, prints the total table count, and closes the connection. Because it
-always inserts, every successful rerun appends the same rows again.
+Run it from the repository root:
 
-### Problems to fix
+```bash
+python3 de_take_home_data/starter_pipeline/load_prices.py
+```
 
-| Current issue | Required change | Why it matters |
-|---|---|---|
-| `DB` and `SOURCE_FILE` depend on the terminal directory | Build defaults with `Path(__file__)` or accept paths as arguments | The command should work from any directory |
-| `prices` has no primary key or constraints | Reuse `src/ddl/schema.sql` and the canonical `daily_ohlcv` table | The database enforces the declared grain and basic invariants |
-| Every run executes a blind `INSERT` | Reuse the conditional upsert in `src/database.py` | Reruns must not create duplicates or rewrite identical rows |
-| CSV strings go directly into SQLite | Reuse source adapters and typed `Candle` records | Dates and numbers are parsed explicitly before publication |
-| There are no quality checks | Reuse `src/validation.py` and store rejection reasons | Invalid OHLCV must not land in the trusted table |
-| Binance columns are hardcoded in the loop | Read paths, parsers, and required headers from `SOURCES` in `src/helpers/config.py` | Gemini can use a different format without adding branches to the generic loader |
-| Commit and close happen only on the success path | Use a context manager and one transaction | Fatal failures roll back instead of publishing partial data |
-| `print` reports only the final table count | Use `logging` and report read, accepted, duplicate, rejected, and written counts | Runs become diagnosable |
-| Files are opened without an encoding or newline policy | Use `encoding="utf-8"` and `newline=""` | CSV reading is predictable across environments |
 
-Parameterized SQL is one thing the inherited script already does correctly; it
-should be retained wherever SQL is still required.
 
-### Simple implementation order
-
-1. Add `logging` and `pathlib.Path`; replace `print` and relative string paths.
-2. Remove the inline `CREATE TABLE` and initialize the shared schema through
-   `src.database.initialize_database()`.
-3. Remove hardcoded `VENUE`, `ASSET`, and Binance-only field access from the
-   loading loop.
-4. Load the reference files first, then loop over the shared `SOURCES`
-   configuration and call `src.loader.load_ohlcv_file()` with each configured
-   parser and required-column set.
-5. Keep the entire run in one transaction and persist the existing rejection
-   and missing-date audit results.
-6. Keep `load_prices.py` as orchestration only. Parsing belongs in
-   `src/adapters.py`; validation and database logic should not be copied into it.
-7. Run the inherited loader twice against a temporary database and verify that
-   the trusted rows and load timestamps are unchanged on the second run.
-8. Run the automated test suite and update this status only after it passes.
-
-### Gemini mapping
-
-Gemini should be normalized by `parse_gemini_row()` into the same `Candle`
-model:
-
-| Gemini input | Canonical output |
-|---|---|
-| `symbol` | Validate pair; normalize `BTC-USD` to `BTCUSD` |
-| `time_ms` | Parse epoch milliseconds in UTC, then derive the Singapore date |
-| `o / h / l / c` | `open / high / low / close` |
-| `base_vol` | `volume`, with `volume_unit="base"` |
-
-The first epoch is December 31, 2025 at 16:00 UTC, or January 1, 2026 at
-00:00 Singapore time. Singapore trading dates are an explicit assumption;
-the timestamp alone does not establish the candle window.
-
-Required headers belong beside the source adapter in `src/helpers/config.py`.
-Gemini should then use the same structural validation, deduplication, audit, and
-persistence flow as the existing sources.
-
-The supplied Gemini BTC series has five structurally valid closes more than 20%
-from the reference feed. Treating that comparison as warning-only is defensible
-because the exercise does not state that the two feeds share the same pricing
-methodology. Structural failures must still be rejected. State this assumption
-explicitly in the walkthrough.
-
-### Interview explanation after implementation
-
-“I first preserved and understood the inherited behavior. I then made its paths
-deterministic, replaced the unconstrained append-only table with the shared
-trusted schema, and reused the existing adapters, validation, audits, transaction,
-and idempotent upserts. I added Gemini through configuration plus a source adapter
-instead of putting Gemini-specific conditions in the generic loader. Finally, I
-proved rerun safety and rollback behavior with automated tests.”
-
-## Part 3 — Design note
+## Design note
 
 ### 1. Why did I choose this schema and grain?
 
@@ -270,11 +203,7 @@ are Gold.
 | Add structured logs and CLI path options | Runs are easier to operate, investigate, and test |
 | Add a Gemini adapter and source configuration | A new file format is supported without adding special cases to the shared loader |
 
-The Gemini adapter converts symbols such as `BTC-USD` to `BTCUSD`, converts epoch
-milliseconds to a Singapore trading date, and maps Gemini columns to the common
-OHLCV model. Standard price, volume, and OHLC checks still apply. The 20%
-reference-price rule is disabled for Gemini because the exercise does not confirm
-that both feeds calculate their daily prices in the same way.
+The Gemini adapter changes Gemini’s data into the same format as the other venues. It changes symbols such as BTC-USD to BTCUSD, converts the timestamp into a Singapore date, and renames Gemini’s price and volume fields. Gemini data still goes through the normal price, volume, and OHLC checks. The reference-price check is disabled for Gemini because it is unclear whether Gemini and the reference feed define their daily prices in the same way. In production, I would confirm this before deciding whether a large difference should be rejected or only reported as a warning.
 
 ### 3. How would I schedule, monitor, and alert on this pipeline in production?
 
@@ -309,14 +238,14 @@ and SQLite's single writer. I would make these changes first:
 
 | Technology | Simple purpose |
 | --- | --- |
-| Dockerized Python | Run the pipeline consistently and process files in chunks |
+| Processing Method| Run the pipeline consistently and process files in chunks |
 | Airflow | Schedule jobs, retry failures, run backfills, and alert the team |
-| Amazon S3 and Parquet | Store raw and processed data efficiently |
+| Amazon S3 and Parquet | Store raw and processed data |
 | PostgreSQL | Replace SQLite and support partitioning, indexes, and bulk loads |
 | dbt | Build and test SQL models when the number of models grows |
 | Spark | Process data across machines only when one machine is no longer enough |
 
-The first production version would use Airflow to run Dockerized Python, with S3
+The first production version would use Airflow to run on docker, with S3
 for files and partitioned PostgreSQL for trusted tables. If that could no longer
 meet the required load or query time, I would move the trusted data to a
 warehouse or Iceberg data lake and use Spark for distributed processing.
