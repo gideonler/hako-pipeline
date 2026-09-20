@@ -182,14 +182,22 @@ python3 de_take_home_data/starter_pipeline/load_prices.py
 | `daily_reference_price` | One row per symbol and trading date | Benchmark used by quality checks |
 | `rejected_rows` / `missing_dates` | One row per detected issue | Audit trail kept outside trusted data |
 
-The primary key `(venue, symbol, trading_date)` matches the business meaning of
-a daily candle and prevents duplicates. `source_file` and `source_row_number`
-allow every trusted row to be traced to its input.
+The primary key `(venue, symbol, trading_date)` represents one unique daily
+candle and prevents duplicate records.The reference feed is stored separately because it is a benchmark, not a trading
+venue, and therefore has a different grain of one row per symbol and date.
+Rejected rows and missing dates are also stored separately so analysts only
+query validated records from the trusted table.
 
-SQLite was selected because it needs no local service and produces one portable
-database file. The pipeline uses logical medallion layers: source CSVs are
-Bronze, normalized and validated records are Silver, and trusted SQLite tables
-are Gold.
+Each trusted row includes `source_file` and `source_row_number`, allowing it to
+be traced back to the original input. The validation rules follow basic OHLCV
+logic: prices must be positive and finite, volume cannot be negative, the high
+must be the highest candle value, and the low must be the lowest. Conflicting
+keys and unusually large reference-price differences are also detected.
+
+SQLite was selected because it runs locally without additional infrastructure
+and produces one portable database file. The pipeline uses logical medallion
+layers: source CSVs are Bronze, normalized and validated records are Silver, and
+trusted SQLite tables are Gold.
 
 ### 2. What did I fix in the inherited script, and why did each fix matter?
 
