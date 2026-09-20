@@ -220,37 +220,29 @@ unexpected columns, and failed loads should raise an urgent alert. Unusual row
 counts, missing dates, or a higher rejection rate should send a warning for
 review.
 
-### 4. How would it behave at millions of rows per day, and what would I change?
+### 4. Proposed scaling approach
+![Scalled Pipeline architecture](docs/scaled-pipeline.svg)
 
-The current pipeline would eventually be limited by memory, row-by-row writes,
-and SQLite's single writer. I would make these changes first:
+At millions of rows per day, the main limits would be memory use, row-level
+database writes, and repeatedly processing old files. I would address these
+limits before changing the entire platform.
 
-| Change | Benefit |
+| Strategy | Approach |
 | --- | --- |
-| Read files in chunks | Keeps memory use stable |
-| Load into staging and bulk `MERGE` | Writes many rows efficiently while keeping reruns safe |
-| Partition tables and files by date | Queries scan only the required dates |
-| Index `(venue, symbol, trading_date)` | Prevents duplicates and supports common lookups |
-| Track file checksums | Skips files that were already processed |
-| Store files as Parquet | Reduces file size and improves query speed |
+| Incremental loading | Track processed files and process only new or changed inputs |
+| Memory control | Read and validate records in chunks |
+| Faster writes | Load into staging and use a bulk `MERGE` |
+| Query performance | Partition by trading date and organize by venue and symbol |
+| Efficient storage | Convert CSV files to Parquet |
+| Safe retries | Preserve the existing business key and idempotent writes |
+| Bad-data handling | Write rejected rows to a separate quarantine area |
+| Parallelism | Process independent files and partitions concurrently |
+| Observability | Monitor freshness, volume, rejection rate, and run duration |
 
-#### Proposed production stack
+A production implementation could use Airflow for orchestration, S3 for file
+storage, and Parquet with Iceberg for partitioned tables. AWS Glue or Spark
+would provide distributed processing only when chunked Python could no longer
+meet the required processing time. Athena could provide SQL access to the
+trusted Gold tables.
 
-| Technology | Simple purpose |
-| --- | --- |
-| Processing Method| Run the pipeline consistently and process files in chunks |
-| Airflow | Schedule jobs, retry failures, run backfills, and alert the team |
-| Amazon S3 and Parquet | Store raw and processed data |
-| PostgreSQL | Replace SQLite and support partitioning, indexes, and bulk loads |
-| dbt | Build and test SQL models when the number of models grows |
-| Spark | Process data across machines only when one machine is no longer enough |
-
-The first production version would use Airflow to run on docker, with S3
-for files and partitioned PostgreSQL for trusted tables. If that could no longer
-meet the required load or query time, I would move the trusted data to a
-warehouse or Iceberg data lake and use Spark for distributed processing.
-
-`Source files → S3 → Python or Spark → PostgreSQL/warehouse → analysts`
-
-The existing business key, validation rules, source tracking, and safe-rerun
-behaviour would remain unchanged.
+`Sources → incremental ingestion → S3 Bronze → validation → Silver/quarantine → Gold → analysts`

@@ -1,92 +1,63 @@
-<mxfile host="app.diagrams.net" agent="Codex" pages="2">
+<mxfile host="app.diagrams.net" agent="Codex">
   <diagram id="scaled-coinhako-pipeline" name="Scaled Production Pipeline">
-    <mxGraphModel dx="2713" dy="1155" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1635" dy="866" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1F2937;" value="Proposed Pipeline for Millions of Rows per Day" vertex="1">
-          <mxGeometry height="40" width="720" x="440" y="20" as="geometry" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1F2937;" value="Scaling Strategy for Millions of Rows per Day" vertex="1">
+          <mxGeometry height="40" width="760" x="420" y="20" as="geometry" />
         </mxCell>
-        <mxCell id="airflow" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4FD;strokeColor=#3182CE;fontSize=13;" value="&lt;b&gt;Managed Airflow&lt;/b&gt;&lt;br&gt;Schedule · file checks · retries · backfills&lt;br&gt;Controls each stage and records run status" vertex="1">
-          <mxGeometry height="75" width="660" x="470" y="105" as="geometry" />
+        <mxCell id="airflow" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4FD;strokeColor=#3182CE;fontSize=13;" value="&lt;b&gt;ORCHESTRATE — Airflow&lt;/b&gt;" vertex="1">
+          <mxGeometry height="65" width="1120" x="240" y="110" as="geometry" />
         </mxCell>
-        <mxCell id="bronze" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#FFF4E6;swimlaneFillColor=#FFF9F1;strokeColor=#B7791F;fontColor=#7C4A03;fontStyle=1;fontSize=15;" value="BRONZE — Land unchanged data" vertex="1">
-          <mxGeometry height="390" width="320" x="-60" y="230" as="geometry" />
+        <mxCell id="sources" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;1 · Source feeds&lt;/b&gt;" vertex="1">
+          <mxGeometry height="125" width="175" x="25" y="245" as="geometry" />
         </mxCell>
-        <mxCell id="sources" parent="bronze" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#D69E2E;fontSize=13;" value="&lt;b&gt;Raw Data Sources&lt;/b&gt;" vertex="1">
-          <mxGeometry height="95" width="260" x="30" y="70" as="geometry" />
+        <mxCell id="incremental" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#805AD5;fontSize=13;" value="&lt;b&gt;2 · Incremental intake&lt;/b&gt;&lt;br&gt;&lt;br&gt;File tracking table + checksum&lt;br&gt;Process only new or&lt;br&gt;changed inputs" vertex="1">
+          <mxGeometry height="145" width="210" x="240" y="235" as="geometry" />
         </mxCell>
-        <mxCell id="s3bronze" parent="bronze" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4BF;strokeColor=#B7791F;fontSize=13;" value="&lt;b&gt;Amazon S3&amp;nbsp;&lt;/b&gt;&lt;br&gt;Immutable source files&lt;br&gt;Partitioned by arrival date&lt;br&gt;File checksum and load manifest" vertex="1">
-          <mxGeometry height="110" width="260" x="30" y="220" as="geometry" />
+        <mxCell id="bronze" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E6;strokeColor=#B7791F;fontSize=13;" value="&lt;b&gt;3 · Bronze — Amazon S3&lt;/b&gt;&lt;br&gt;&lt;br&gt;Keep source files unchanged&lt;br&gt;Partition by arrival date&lt;br&gt;Retain for replay" vertex="1">
+          <mxGeometry height="145" width="215" x="490" y="235" as="geometry" />
         </mxCell>
-        <mxCell id="edge-source-bronze" edge="1" parent="bronze" source="sources" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B7791F;strokeWidth=2;endArrow=block;endFill=1;" target="s3bronze">
+        <mxCell id="processing" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F4F7;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;4 · Normalize and validate&lt;/b&gt;&lt;br&gt;&lt;br&gt;Read bounded chunks&lt;br&gt;Process files in parallel&lt;br&gt;Python first" vertex="1">
+          <mxGeometry height="170" width="255" x="745" y="222" as="geometry" />
+        </mxCell>
+        <mxCell id="silver" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4FD;strokeColor=#3182CE;fontSize=13;" value="&lt;b&gt;5 · Silver — Parquet/Iceberg&lt;/b&gt;&lt;br&gt;&lt;br&gt;Clean standard records&lt;br&gt;Partition by trading date" vertex="1">
+          <mxGeometry height="145" width="220" x="1040" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="gold" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8D9;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;6 · Gold — Trusted tables&lt;/b&gt;&lt;br&gt;&lt;br&gt;Stage then bulk MERGE" vertex="1">
+          <mxGeometry height="145" width="235" x="1300" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-1" edge="1" parent="1" source="sources" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="incremental">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="silver" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#F2F4F7;swimlaneFillColor=#FAFAFA;strokeColor=#718096;fontColor=#374151;fontStyle=1;fontSize=15;" value="SILVER — Normalize and validate" vertex="1">
-          <mxGeometry height="390" width="500" x="390" y="215" as="geometry" />
-        </mxCell>
-        <mxCell id="spark" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;PySpark processing job&lt;/b&gt;&lt;br&gt;Parallel parsing, normalization and checks&lt;br&gt;&lt;br&gt;Ports rules from:&lt;br&gt;src/adapters.py · src/models.py&lt;br&gt;src/validation.py" vertex="1">
-          <mxGeometry height="145" width="205" x="25" y="70" as="geometry" />
-        </mxCell>
-        <mxCell id="iceberg-silver" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4FD;strokeColor=#3182CE;fontSize=13;" value="&lt;b&gt;S3 Parquet + Iceberg&lt;/b&gt;&lt;br&gt;Clean, standard records&lt;br&gt;Partitioned by trading date&lt;br&gt;Schema evolution and safe MERGE" vertex="1">
-          <mxGeometry height="125" width="205" x="270" y="70" as="geometry" />
-        </mxCell>
-        <mxCell id="quarantine" parent="silver" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDECEC;strokeColor=#C53030;fontSize=13;" value="&lt;b&gt;Quarantine&lt;/b&gt;&lt;br&gt;Rejected rows + reasons&lt;br&gt;Missing-date results" vertex="1">
-          <mxGeometry height="85" width="205" x="270" y="250" as="geometry" />
-        </mxCell>
-        <mxCell id="edge-spark-silver" edge="1" parent="silver" source="spark" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#3182CE;strokeWidth=2;endArrow=block;endFill=1;" target="iceberg-silver">
+        <mxCell id="edge-2" edge="1" parent="1" source="incremental" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="bronze">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge-spark-quarantine" edge="1" parent="silver" source="spark" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#C53030;strokeWidth=2;dashed=1;endArrow=block;endFill=1;" target="quarantine">
+        <mxCell id="edge-3" edge="1" parent="1" source="bronze" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="processing">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="gold" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#FFF8D9;swimlaneFillColor=#FFFDF2;strokeColor=#B7950B;fontColor=#6B5900;fontStyle=1;fontSize=15;" value="GOLD — Build trusted models" vertex="1">
-          <mxGeometry height="390" width="310" x="930" y="215" as="geometry" />
-        </mxCell>
-        <mxCell id="dbt" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;dbt models and tests&lt;/b&gt;&lt;br&gt;Business rules · documentation&lt;br&gt;Unique, not-null and relationship tests&lt;br&gt;&lt;br&gt;Replaces local schema.sql models" vertex="1">
-          <mxGeometry height="125" width="250" x="30" y="70" as="geometry" />
-        </mxCell>
-        <mxCell id="iceberg-gold" parent="gold" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4BF;strokeColor=#B7950B;fontSize=13;" value="&lt;b&gt;Iceberg Gold tables&lt;/b&gt;&lt;br&gt;daily_ohlcv&lt;br&gt;daily_reference_price&lt;br&gt;&lt;br&gt;Bulk MERGE replaces SQLite writes" vertex="1">
-          <mxGeometry height="125" width="250" x="30" y="240" as="geometry" />
-        </mxCell>
-        <mxCell id="edge-dbt-gold" edge="1" parent="gold" source="dbt" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#B7950B;strokeWidth=2;endArrow=block;endFill=1;" target="iceberg-gold">
+        <mxCell id="edge-4" edge="1" parent="1" source="processing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="silver">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="serve" parent="1" style="swimlane;html=1;startSize=42;horizontal=1;rounded=1;fillColor=#E9F7EF;swimlaneFillColor=#F5FCF8;strokeColor=#2E8B57;fontColor=#1F6B45;fontStyle=1;fontSize=15;" value="SERVE — Query and consume" vertex="1">
-          <mxGeometry height="390" width="290" x="1280" y="215" as="geometry" />
-        </mxCell>
-        <mxCell id="query" parent="serve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2E8B57;fontSize=13;" value="&lt;b&gt;Athena or Trino&lt;/b&gt;&lt;br&gt;SQL query layer over Gold tables" vertex="1">
-          <mxGeometry height="90" width="230" x="30" y="90" as="geometry" />
-        </mxCell>
-        <mxCell id="users" parent="serve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDF5E6;strokeColor=#2E8B57;fontSize=13;" value="&lt;b&gt;Consumers&lt;/b&gt;&lt;br&gt;Analysts · dashboards&lt;br&gt;data products" vertex="1">
-          <mxGeometry height="90" width="230" x="30" y="245" as="geometry" />
-        </mxCell>
-        <mxCell id="edge-query-users" edge="1" parent="serve" source="query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2E8B57;strokeWidth=2;endArrow=block;endFill=1;" target="users">
+        <mxCell id="edge-5" edge="1" parent="1" source="silver" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="gold">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge-bronze-spark" edge="1" parent="1" source="s3bronze" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="spark">
+        <mxCell id="quarantine" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDECEC;strokeColor=#C53030;fontSize=13;" value="&lt;b&gt;Quarantine Bucket&lt;/b&gt;&lt;br&gt;Rejected rows + reasons&lt;br&gt;Missing-date results" vertex="1">
+          <mxGeometry height="90" width="220" x="762.5" y="463" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-reject" edge="1" parent="1" source="processing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#C53030;strokeWidth=2;dashed=1;endArrow=block;endFill=1;" target="quarantine">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge-silver-dbt" edge="1" parent="1" source="iceberg-silver" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="dbt">
+        <mxCell id="query" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9F7EF;strokeColor=#2E8B57;fontSize=13;" value="&lt;b&gt;Query and consume&lt;/b&gt;&lt;br&gt;&lt;br&gt;Athena SQL&lt;br&gt;Analysts · dashboards · data products" vertex="1">
+          <mxGeometry height="115" width="235" x="1300" y="455" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-query" edge="1" parent="1" source="gold" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2E8B57;strokeWidth=2;endArrow=block;endFill=1;" target="query">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="edge-gold-query" edge="1" parent="1" source="iceberg-gold" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;" target="query">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="monitoring" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F4F7;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;OBSERVE — CloudWatch + alerts&lt;/b&gt;" vertex="1">
+          <mxGeometry height="85" width="730" x="450" y="620" as="geometry" />
         </mxCell>
-        <mxCell id="catalog" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#805AD5;fontSize=13;" value="&lt;b&gt;Glue Data Catalog&lt;/b&gt;&lt;br&gt;Table definitions, partitions and discoverability across Bronze, Silver and Gold" vertex="1">
-          <mxGeometry height="75" width="500" x="390" y="655" as="geometry" />
-        </mxCell>
-        <mxCell id="monitoring" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F2F4F7;strokeColor=#718096;fontSize=13;" value="&lt;b&gt;CloudWatch + Slack / PagerDuty&lt;/b&gt;&lt;br&gt;Run status · row counts · rejection rate · freshness · failures" vertex="1">
-          <mxGeometry height="75" width="600" x="930" y="655" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-  <diagram id="KSqekjOBClMoVPSq1XfE" name="Page-2">
-    <mxGraphModel dx="668" dy="693" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
       </root>
     </mxGraphModel>
   </diagram>
