@@ -119,8 +119,6 @@ README.md                   # Run guide, design note
 
 ![Pipeline architecture](docs/pipeline-architecture.svg)
 
-Scaled production diagram: [docs/scaled-pipeline-architecture.drawio](docs/scaled-pipeline-architecture.drawio)
-
 ## Inspect quality results
 
 ```bash
