@@ -192,11 +192,6 @@ logic: prices must be positive and finite, volume cannot be negative, the high
 must be the highest candle value, and the low must be the lowest. Conflicting
 keys and unusually large reference-price differences are also detected.
 
-SQLite was selected because it runs locally without additional infrastructure
-and produces one portable database file. The pipeline uses logical medallion
-layers: source CSVs are Bronze, normalized and validated records are Silver, and
-trusted SQLite tables are Gold.
-
 The source files describe the same daily OHLCV event but use different column
 names, timestamp formats, and symbol formats. I normalize them into one `Candle`
 model so validation, database loading, and analyst queries do not need
