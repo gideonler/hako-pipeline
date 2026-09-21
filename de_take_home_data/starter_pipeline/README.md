@@ -1,41 +1,58 @@
-# Inherited loader — load_prices.py
+# Inherited loader — `load_prices.py`
 
-This is the original inherited entry point. It currently loads only Binance
-BTCUSD into an unconstrained local `prices` table.
+This is the inherited Part 2 entry point. It has been fixed to reuse the shared
+trusted schema, source adapters, validation, transactions, and idempotent
+upserts. It has also been extended to load Gemini's different source format.
 
 ## Run it
 
-Its original command expects the working directory to be this folder:
-
-```
-cd de_take_home_data/starter_pipeline
-python3 load_prices.py
-```
-
-It creates `prices.db` in the current directory.
-
-## Current problems
-
-- Paths depend on the working directory.
-- The table has no primary key or constraints.
-- Reruns append duplicate rows.
-- CSV values are not parsed or validated explicitly.
-- There is no rejection audit or missing-date check.
-- The format and Binance source are hardcoded.
-- Failures can bypass `conn.close()`.
-- It prints only a total count and does not load Gemini.
-
-The parameter placeholders in its SQL are correct and should be retained.
-
-## Required verification after fixing it
-
 From the repository root:
 
+```bash
+python3 de_take_home_data/starter_pipeline/load_prices.py
 ```
+
+The paths are resolved from the script location, so the command also works when
+started from another directory. Optional paths can be supplied with:
+
+```bash
+python3 de_take_home_data/starter_pipeline/load_prices.py \
+  --db output/prices.db \
+  --data-dir data
+```
+
+## What it loads
+
+- BTCUSD and ETHUSD reference-price files
+- Binance BTCUSD from the inherited source
+- Gemini BTCUSD and ETHUSD from the new source
+
+Reference prices are loaded first. The venue files are then parsed through the
+source configuration and shared loader. Gemini symbols, epoch-millisecond
+timestamps, and short column names are normalized by `src/adapters.py`.
+
+## Behaviour
+
+- Invalid OHLCV records are kept out of the trusted table.
+- Primary keys and conditional upserts make reruns idempotent.
+- All files are loaded in one transaction, so a fatal error rolls back the run.
+- Logs report read, accepted, duplicate, rejected, written, and removed rows.
+- Gemini receives the shared structural checks. Its configurable reference-price
+  comparison is disabled pending confirmation that the candle windows are
+  directly comparable.
+
+Rejected rows from this entry point are logged. The Part 1 entry point
+`python3 -m src.main` additionally persists rejected rows and missing dates in
+the audit tables.
+
+## Verify it
+
+Run the loader twice and confirm the second run does not add trusted rows. Then
+run the complete automated suite from the repository root:
+
+```bash
 python3 -m unittest discover -s tests -v
 ```
 
-Run the loader twice and confirm that the second run produces no new trusted
-rows. Then run the full test suite above. Source settings should come from
-`src/helpers/config.py`, while format transformations remain in
-`src/adapters.py`.
+The tests cover Gemini normalization, rerun safety, execution from another
+directory, and transaction rollback.

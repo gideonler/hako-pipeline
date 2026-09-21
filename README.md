@@ -15,18 +15,27 @@ The project uses three logical layers:
 
 The pipeline runtime uses only the Python standard library.
 
-## Run the pipeline
+## Running the Pipeline
 
 From the repository root:
 
 ```bash
-python3 -m src.main
+python3 -m src.main && python3 de_take_home_data/starter_pipeline/load_prices.py
 ```
 
-The command loads all six venue files and both reference files, then creates:
+The first command builds the Part 1 dataset from the six raw venue files and
+two reference files. The second command runs the fixed inherited loader and
+adds Gemini BTCUSD and ETHUSD. Both commands publish to:
 
 ```text
 output/prices.db
+```
+
+The combined database contains 938 trusted OHLCV rows and 240 reference-price
+rows. To run Part 1 only, use:
+
+```bash
+python3 -m src.main
 ```
 
 Check the database tables:
@@ -62,9 +71,9 @@ The tests currently verify that:
 - Conflicting duplicates are rejected and obsolete trusted rows are removed.
 - Gemini epoch timestamps and symbols are normalized correctly.
 
-The suite also contains regression tests for the inherited loader. Those tests
-will fail while `load_prices.py` remains in its original state; they become the
-acceptance criteria for the Part 2 implementation.
+The suite also contains regression tests for the inherited loader, including
+Gemini normalization, idempotent reruns, execution from another directory, and
+transaction rollback.
 
 ## Check rerun safety
 
@@ -82,7 +91,7 @@ sqlite3 /tmp/part1-prices.db \
   "SELECT COUNT(*) FROM daily_ohlcv; SELECT COUNT(*) FROM daily_reference_price;"
 ```
 
-Expected result:
+Expected Part 1-only result:
 
 ```text
 698
@@ -110,7 +119,7 @@ de_take_home_data/starter_pipeline/
 ├── load_prices.py          # Inherited loader
 └── README.md               # Inherited behavior and verification guide
 
-output/prices.db            # Produced SQLite database
+output/prices.db            # Produced combined SQLite database
 tests/                      # Automated tests
 README.md                   # Run guide, design note
 ```
@@ -127,13 +136,16 @@ sqlite3 -header -column output/prices.db "SELECT * FROM missing_dates;"
 sqlite3 -header -column output/prices.db "SELECT venue, symbol, COUNT(*) AS rows FROM daily_ohlcv GROUP BY venue, symbol;"
 ```
 
-Expected: 8 rejected rows, 6 skipped exact duplicates, and 14 missing input dates
-(March 4–10 for both Coinbase assets). Missing dates are not filled.
-Binance has 118 rows per asset, Kraken 119, and Coinbase 112.
+The Part 1 audit contains 8 rejected rows, 6 skipped exact duplicates, and 14
+missing input dates (March 4–10 for both Coinbase assets). Missing dates are not
+filled. Binance has 118 rows per asset, Kraken 119, Coinbase 112, and Gemini
+120. Gemini is added by the Part 2 loader, which logs its rejected rows rather
+than writing them to the Part 1 audit tables.
 
 Closes more than 20% from the same-date reference are rejected. This catches
-the two January 30 Binance outliers. Override with `--max-deviation 0.20`.
-This is a coarse outlier check, not a guarantee of market-price accuracy.
+the two January 30 Binance outliers. The threshold can be changed with
+`--max-deviation`; its default is `0.20`. This is a coarse outlier check, not a
+guarantee of market-price accuracy.
 
 Each input file is a complete snapshot for its symbol/source over January–April
 2026. A successful run removes rows from that source which no longer pass.
@@ -153,7 +165,8 @@ To override the input folder:
 python3 -m src.main --raw-dir data/raw_feeds
 ```
 
-## Inherited loader 
+## Inherited loader
+
 The inherited loader is located at:
 
 `de_take_home_data/starter_pipeline/load_prices.py`
@@ -168,8 +181,6 @@ Run it from the repository root:
 python3 de_take_home_data/starter_pipeline/load_prices.py
 ```
 
-
-
 ## Design note
 
 ### 1. Why did I choose this schema and grain?
@@ -181,8 +192,9 @@ python3 de_take_home_data/starter_pipeline/load_prices.py
 | `rejected_rows` / `missing_dates` | One row per detected issue | Audit trail kept outside trusted data |
 
 The primary key `(venue, symbol, trading_date)` represents one unique daily
-candle and prevents duplicate records.The reference feed is stored separately because it is a benchmark, not a trading
-venue, and therefore has a different grain of one row per symbol and date.
+candle and prevents duplicate records. The reference feed is stored separately
+because it is a benchmark, not a trading venue, and therefore has a different
+grain of one row per symbol and date.
 Rejected rows and missing dates are also stored separately so analysts only
 query validated records from the trusted table.
 
@@ -214,7 +226,14 @@ provenance.
 | Add structured logs and CLI path options | Runs are easier to operate, investigate, and test |
 | Add a Gemini adapter and source configuration | A new file format is supported without adding special cases to the shared loader |
 
-The Gemini adapter changes Gemini’s data into the same format as the other venues. It changes symbols such as BTC-USD to BTCUSD, converts the timestamp into a Singapore date, and renames Gemini’s price and volume fields. Gemini data still goes through the normal price, volume, and OHLC checks. The reference-price check is disabled for Gemini because it is unclear whether Gemini and the reference feed define their daily prices in the same way. In production, I would confirm this before deciding whether a large difference should be rejected or only reported as a warning.
+The Gemini adapter changes Gemini's data into the same format as the other
+venues. It changes symbols such as `BTC-USD` to `BTCUSD`, converts the timestamp
+into a Singapore date, and renames Gemini's price and volume fields. Gemini data
+still goes through the normal price, volume, and OHLC checks. The reference-price
+check is disabled for Gemini because it is unclear whether Gemini and the
+reference feed define their daily prices in the same way. In production, I
+would confirm this before deciding whether a large difference should be rejected
+or only reported as a warning.
 
 ### 3. How would I schedule, monitor, and alert on this pipeline in production?
 
@@ -232,7 +251,8 @@ counts, missing dates, or a higher rejection rate should send a warning for
 review.
 
 ### 4. Proposed scaling approach
-![Scalled Pipeline architecture](docs/scaled-pipeline.svg)
+
+![Scaled pipeline architecture](docs/scaled-pipeline.svg)
 
 At millions of rows per day, the main limits would be memory use, row-level
 database writes, and repeatedly processing old files. I would address these
