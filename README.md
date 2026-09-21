@@ -197,6 +197,16 @@ and produces one portable database file. The pipeline uses logical medallion
 layers: source CSVs are Bronze, normalized and validated records are Silver, and
 trusted SQLite tables are Gold.
 
+The source files describe the same daily OHLCV event but use different column
+names, timestamp formats, and symbol formats. I normalize them into one `Candle`
+model so validation, database loading, and analyst queries do not need
+source-specific logic.
+
+The model contains the common business fields shared by the feeds: venue,
+symbol, trading date, OHLC prices, and volume. `volume_unit` preserves differences
+in how venues report volume, while `source_file` and `source_row_number` provide
+provenance.
+
 ### 2. What did I fix in the inherited script, and why did each fix matter?
 
 | Change | Why it matters |

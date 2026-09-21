@@ -1,4 +1,4 @@
-"""Command-line entry point for the trusted market-data pipeline."""
+"""Pipeline entry point"""
 
 import argparse
 import json

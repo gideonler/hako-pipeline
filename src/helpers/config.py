@@ -1,4 +1,7 @@
-"""Declarative source definitions for the shared OHLCV loader."""
+"""
+Define each source file and how the loader should process it
+Input
+"""
 
 from collections.abc import Callable
 from dataclasses import dataclass

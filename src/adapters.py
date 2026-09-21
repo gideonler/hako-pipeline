@@ -14,7 +14,7 @@ def parse_gemini_row(
     source_row_number: int,
     expected_symbol: str,
 ) -> Candle:
-    """Normalize a Gemini epoch-millisecond row into a canonical candle."""
+    """Normalize a Gemini row into pipeline's standard candle format"""
     symbol = row["symbol"].replace("-", "").upper()
 
     if symbol != expected_symbol:
@@ -48,7 +48,7 @@ def parse_binance_row(
     source_row_number: int,
     symbol: str,
 ) -> Candle:
-    """Normalize one Binance CSV row into a canonical candle."""
+    """Normalize a Binance row into pipeline's standard candle format"""
     timestamp = datetime.fromisoformat(row["timestamp"])
 
     return Candle(
@@ -116,7 +116,7 @@ def parse_reference_row(
     source_row_number: int,
     symbol: str,
 ) -> ReferencePrice:
-    """Normalize one external reference-price CSV row."""
+    """Normalize external reference into pipeline's standard candle format"""
     return ReferencePrice(
         symbol=symbol,
         trading_date=date.fromisoformat(row["date"]),
